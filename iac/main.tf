@@ -19,8 +19,16 @@ data "archive_file" "node_lambda" {
   output_path = "function.zip"
 }
 
+data "archive_file" "go_lambda" {
+  type        = "zip"
+  source_file = "./go-demo/bootstrap"
+  output_path = "bootstrap.zip"
+}
+
 resource "aws_lambda_function" "cobra_node_lambda" {
   function_name = "cobra-node-demo"
+
+  count = 0
 
   role             = aws_iam_role.lambda_iam_role.arn
   handler          = "index.handler"
@@ -33,6 +41,21 @@ resource "aws_lambda_function" "cobra_node_lambda" {
     aws_iam_role_policy_attachment.lambda_policy_attachment
   ]
 
+}
+
+resource "aws_lambda_function" "cobra_go_lambda" {
+  function_name = "cobra-go-demo"
+
+  role             = aws_iam_role.lambda_iam_role.arn
+  handler          = "bootstrap"
+  architectures    = ["x86_64"]
+  filename         = "bootstrap.zip"
+  source_code_hash = data.archive_file.go_lambda.output_base64sha256
+  runtime          = "provided.al2"
+  timeout          = 60
+  depends_on = [
+    aws_iam_role_policy_attachment.lambda_policy_attachment
+  ]
 }
 
 resource "aws_iam_role" "lambda_iam_role" {
@@ -83,9 +106,9 @@ resource "aws_iam_role_policy_attachment" "lambda_policy_attachment" {
 }
 
 output "lambda_function_arn" {
-  value = aws_lambda_function.cobra_lambda.invoke_arn
+  value = aws_lambda_function.cobra_go_lambda.invoke_arn
 }
 
 output "lambda_function_name" {
-  value = aws_lambda_function.cobra_lambda.function_name
+  value = aws_lambda_function.cobra_go_lambda.function_name
 }

@@ -50,4 +50,5 @@ func main() {
 	}
 
 	fmt.Println(output.Stdout)
+	fmt.Println(output.Result)
 }
