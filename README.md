@@ -135,7 +135,7 @@ func example() {
         },
     }
 
-    w := wrapper.NewCobraLambda(cmd)
+    w := wrapper.NewCobraLambda(context.TODO(), cmd)
     output, err := w.Execute([]string{})
     if err != nil {
         panic(err)
@@ -157,7 +157,7 @@ subCmd := &cobra.Command{
 }
 rootCmd.AddCommand(subCmd)
 
-w := wrapper.NewCobraLambda(rootCmd)
+w := wrapper.NewCobraLambda(context.TODO(), rootCmd)
 output, err := w.Execute([]string{"deploy"})
 ```
 

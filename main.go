@@ -45,7 +45,7 @@ func main() {
 	}, &output)
 
 	if err != nil {
-		fmt.Printf("Remote error: %v\n", err)
+		fmt.Printf("%v\n", err)
 		os.Exit(1)
 	}
 

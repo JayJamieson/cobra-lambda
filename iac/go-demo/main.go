@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/JayJamieson/cobra-lambda/wrapper"
+
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/spf13/cobra"
 )
@@ -21,11 +23,19 @@ var rootCmd = &cobra.Command{
 
 func Handle(ctx context.Context, event json.RawMessage) (any, error) {
 
-	// return map[string]any{
-	// 	"result": bufCobra.String(),
-	// 	"stdout": out,
-	// }, nil
-	return nil, nil
+	args := make([]string, 0, 10)
+	err := json.Unmarshal(event, &args)
+
+	if err != nil {
+		return nil, err
+	}
+
+	w := wrapper.NewCobraLambda(ctx, rootCmd)
+	result, err := w.Execute(args)
+
+	return map[string]any{
+		"stdout": result.Output,
+	}, nil
 }
 
 func main() {
