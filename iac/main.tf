@@ -13,34 +13,10 @@ provider "aws" {
   region = var.region
 }
 
-data "archive_file" "node_lambda" {
-  type        = "zip"
-  source_dir = "./node-demo"
-  output_path = "function.zip"
-}
-
 data "archive_file" "go_lambda" {
   type        = "zip"
   source_file = "./go-demo/bootstrap"
   output_path = "bootstrap.zip"
-}
-
-resource "aws_lambda_function" "cobra_node_lambda" {
-  function_name = "cobra-node-demo"
-
-  count = 0
-
-  role             = aws_iam_role.lambda_iam_role.arn
-  handler          = "index.handler"
-  architectures    = ["x86_64"]
-  filename         = "function.zip"
-  source_code_hash = data.archive_file.node_lambda.output_base64sha256
-  runtime          = "nodejs20.x"
-  timeout          = 900
-  depends_on = [
-    aws_iam_role_policy_attachment.lambda_policy_attachment
-  ]
-
 }
 
 resource "aws_lambda_function" "cobra_go_lambda" {

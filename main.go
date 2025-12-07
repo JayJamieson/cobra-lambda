@@ -36,7 +36,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var output = &ExecutionOutput{}
+	output := &ExecutionOutput{}
 
 	err = lambda.InvokeSync(ctx, client, &lambda.InvokeInput{
 		Name:      funcName,
@@ -45,10 +45,9 @@ func main() {
 	}, &output)
 
 	if err != nil {
-		fmt.Printf("%v\n", err)
+		fmt.Printf("Remote error: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Println(output.Stdout)
-	fmt.Println(output.Result)
+	fmt.Print(output.Stdout)
 }
