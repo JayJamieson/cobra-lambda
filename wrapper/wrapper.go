@@ -63,6 +63,7 @@ func (w *CobraLambda) Execute(args []string) (*OutputCapture, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	stderrReader, stderrWriter, err := os.Pipe()
 	if err != nil {
 		stdoutWriter.Close()
@@ -85,19 +86,22 @@ func (w *CobraLambda) Execute(args []string) (*OutputCapture, error) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		io.Copy(sharedBuffer, stdoutReader)
+		mw := io.MultiWriter(sharedBuffer, w.originalStdout)
+		io.Copy(mw, stdoutReader)
 		done <- true
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		io.Copy(sharedBuffer, stderrReader)
+		mw := io.MultiWriter(sharedBuffer, w.originalStderr)
+		io.Copy(mw, stderrReader)
 		done <- true
 	}()
 
-	w.cmd.SetOut(sharedBuffer)
-	w.cmd.SetErr(sharedBuffer)
+	// when set to nil, cobra will use stdout/stderr
+	w.cmd.SetOut(nil)
+	w.cmd.SetErr(nil)
 	w.cmd.SetArgs(args)
 
 	execErr := w.cmd.Execute()
