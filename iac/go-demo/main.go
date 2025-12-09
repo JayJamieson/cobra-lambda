@@ -21,7 +21,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func Handle(ctx context.Context, event json.RawMessage) (any, error) {
+func Handler(ctx context.Context, event json.RawMessage) (any, error) {
 
 	args := make([]string, 0, 10)
 	err := json.Unmarshal(event, &args)
@@ -39,5 +39,5 @@ func Handle(ctx context.Context, event json.RawMessage) (any, error) {
 }
 
 func main() {
-	lambda.Start(Handle)
+	lambda.Start(Handler)
 }

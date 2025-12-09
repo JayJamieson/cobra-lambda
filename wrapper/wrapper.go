@@ -1,7 +1,6 @@
 package wrapper
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"os"
@@ -12,24 +11,7 @@ import (
 
 // OutputCapture holds captured output from both Cobra command and os.Stdout/Stderr
 type OutputCapture struct {
-	Output string
-}
-
-type threadSafeBuffer struct {
-	mu  sync.Mutex
-	buf bytes.Buffer
-}
-
-func (t *threadSafeBuffer) Write(p []byte) (n int, err error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return t.buf.Write(p)
-}
-
-func (t *threadSafeBuffer) String() string {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return t.buf.String()
+	Stdout string `json:"stdout"`
 }
 
 type CobraLambda struct {
@@ -40,7 +22,7 @@ type CobraLambda struct {
 	mu             sync.Mutex
 }
 
-func NewCobraLambda(ctx context.Context, cmd *cobra.Command) *CobraLambda {
+func NewCobraLambdaCLI(ctx context.Context, cmd *cobra.Command) *CobraLambda {
 	cmd.SetContext(ctx)
 	return &CobraLambda{
 		cmd:            cmd,
@@ -119,7 +101,7 @@ func (w *CobraLambda) Execute(args []string) (*OutputCapture, error) {
 	os.Stderr = w.originalStderr
 
 	return &OutputCapture{
-		Output: sharedBuffer.String(),
+		Stdout: sharedBuffer.String(),
 	}, execErr
 }
 

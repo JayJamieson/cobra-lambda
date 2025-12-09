@@ -35,7 +35,7 @@ func TestCobraWrapper_Execute(t *testing.T) {
 	cmd.Flags().IntVar(&age, "age", 0, "Age")
 
 	// Wrap and execute
-	wrapper := NewCobraLambda(context.TODO(), cmd)
+	wrapper := NewCobraLambdaCLI(context.TODO(), cmd)
 	output, err := wrapper.Execute([]string{"--name", "Alice", "--age", "30"})
 
 	if err != nil {
@@ -43,20 +43,20 @@ func TestCobraWrapper_Execute(t *testing.T) {
 	}
 
 	// Check all output in the shared buffer
-	if !strings.Contains(output.Output, "Hello from Cobra!") {
-		t.Errorf("Output missing expected text. Got: %s", output.Output)
+	if !strings.Contains(output.Stdout, "Hello from Cobra!") {
+		t.Errorf("Stdout missing expected text. Got: %s", output.Stdout)
 	}
-	if !strings.Contains(output.Output, "Name: Alice, Age: 30") {
-		t.Errorf("Output missing expected text. Got: %s", output.Output)
+	if !strings.Contains(output.Stdout, "Name: Alice, Age: 30") {
+		t.Errorf("Stdout missing expected text. Got: %s", output.Stdout)
 	}
-	if !strings.Contains(output.Output, "Hello from os.Stdout!") {
-		t.Errorf("Output missing expected text. Got: %s", output.Output)
+	if !strings.Contains(output.Stdout, "Hello from os.Stdout!") {
+		t.Errorf("Stdout missing expected text. Got: %s", output.Stdout)
 	}
-	if !strings.Contains(output.Output, "Additional stdout output") {
-		t.Errorf("Output missing expected text. Got: %s", output.Output)
+	if !strings.Contains(output.Stdout, "Additional stdout output") {
+		t.Errorf("Stdout missing expected text. Got: %s", output.Stdout)
 	}
-	if !strings.Contains(output.Output, "Error message to stderr") {
-		t.Errorf("Output missing stderr text. Got: %s", output.Output)
+	if !strings.Contains(output.Stdout, "Error message to stderr") {
+		t.Errorf("Stdout missing stderr text. Got: %s", output.Stdout)
 	}
 }
 
@@ -71,7 +71,7 @@ func TestCobraWrapper_ExecuteWithError(t *testing.T) {
 		},
 	}
 
-	wrapper := NewCobraLambda(context.TODO(), cmd)
+	wrapper := NewCobraLambdaCLI(context.TODO(), cmd)
 	output, err := wrapper.Execute([]string{})
 
 	if err == nil {
@@ -81,12 +81,12 @@ func TestCobraWrapper_ExecuteWithError(t *testing.T) {
 		t.Errorf("Expected 'command failed', got: %v", err)
 	}
 
-	// Output should still be captured even with error
-	if !strings.Contains(output.Output, "Before error") {
-		t.Errorf("Output not captured on error. Got: %s", output.Output)
+	// Stdout should still be captured even with error
+	if !strings.Contains(output.Stdout, "Before error") {
+		t.Errorf("Stdout not captured on error. Got: %s", output.Stdout)
 	}
-	if !strings.Contains(output.Output, "Stdout before error") {
-		t.Errorf("Output not captured on error. Got: %s", output.Output)
+	if !strings.Contains(output.Stdout, "Stdout before error") {
+		t.Errorf("Stdout not captured on error. Got: %s", output.Stdout)
 	}
 }
 
@@ -101,7 +101,7 @@ func TestCobraWrapper_StdoutStderrRestored(t *testing.T) {
 		},
 	}
 
-	wrapper := NewCobraLambda(context.TODO(), cmd)
+	wrapper := NewCobraLambdaCLI(context.TODO(), cmd)
 	_, err := wrapper.Execute([]string{})
 
 	if err != nil {
@@ -129,7 +129,7 @@ func TestCobraWrapper_ThreadSafety(t *testing.T) {
 		},
 	}
 
-	wrapper := NewCobraLambda(context.TODO(), cmd)
+	wrapper := NewCobraLambdaCLI(context.TODO(), cmd)
 
 	// Run multiple times concurrently
 	var wg sync.WaitGroup
@@ -145,8 +145,8 @@ func TestCobraWrapper_ThreadSafety(t *testing.T) {
 				return
 			}
 			// Verify output has content
-			if len(output.Output) == 0 {
-				errors <- fmt.Errorf("goroutine %d: empty Output", id)
+			if len(output.Stdout) == 0 {
+				errors <- fmt.Errorf("goroutine %d: empty Stdout", id)
 			}
 		}(i)
 	}
@@ -176,22 +176,22 @@ func TestCobraWrapper_SubcommandExecution(t *testing.T) {
 
 	rootCmd.AddCommand(subCmd)
 
-	wrapper := NewCobraLambda(context.TODO(), rootCmd)
+	wrapper := NewCobraLambdaCLI(context.TODO(), rootCmd)
 	output, err := wrapper.Execute([]string{"sub"})
 
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
 
-	if !strings.Contains(output.Output, "Subcommand executed") {
-		t.Errorf("Subcommand output not captured. Got: %s", output.Output)
+	if !strings.Contains(output.Stdout, "Subcommand executed") {
+		t.Errorf("Subcommand output not captured. Got: %s", output.Stdout)
 	}
-	if !strings.Contains(output.Output, "Subcommand stdout") {
-		t.Errorf("Subcommand stdout not captured. Got: %s", output.Output)
+	if !strings.Contains(output.Stdout, "Subcommand stdout") {
+		t.Errorf("Subcommand stdout not captured. Got: %s", output.Stdout)
 	}
 }
 
-func TestCobraWrapper_EmptyOutput(t *testing.T) {
+func TestCobraWrapper_EmptyStdout(t *testing.T) {
 	// Command that produces no output
 	cmd := &cobra.Command{
 		Use: "test",
@@ -200,14 +200,14 @@ func TestCobraWrapper_EmptyOutput(t *testing.T) {
 		},
 	}
 
-	wrapper := NewCobraLambda(context.TODO(), cmd)
+	wrapper := NewCobraLambdaCLI(context.TODO(), cmd)
 	output, err := wrapper.Execute([]string{})
 
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
 
-	if output.Output != "" {
-		t.Errorf("Expected empty Output, got: %s", output.Output)
+	if output.Stdout != "" {
+		t.Errorf("Expected empty Stdout, got: %s", output.Stdout)
 	}
 }

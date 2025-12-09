@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/JayJamieson/cobra-lambda/wrapper"
 	lambda "github.com/JayJamieson/go-lambda-invoke"
 )
 
@@ -41,7 +42,7 @@ func main() {
 	err = lambda.InvokeSync(ctx, client, &lambda.InvokeInput{
 		Name:      funcName,
 		Qualifier: "$LATEST",
-		Payload:   os.Args[3:],
+		Payload:   wrapper.CobraLambdaEvent{Args: os.Args[3:]},
 	}, &output)
 
 	if err != nil {
