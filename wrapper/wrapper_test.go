@@ -25,7 +25,7 @@ func TestCobraWrapper_Execute(t *testing.T) {
 
 			// Write to os.Stdout
 			fmt.Println("Hello from os.Stdout!")
-			fmt.Fprintf(os.Stdout, "Additional stdout output\n")
+			_, _ = fmt.Fprintf(os.Stdout, "Additional stdout output\n")
 
 			// Write to os.Stderr
 			fmt.Fprintln(os.Stderr, "Error message to stderr")

@@ -48,8 +48,8 @@ func (w *CobraLambda) Execute(args []string) (*OutputCapture, error) {
 
 	stderrReader, stderrWriter, err := os.Pipe()
 	if err != nil {
-		stdoutWriter.Close()
-		stdoutReader.Close()
+		_ = stdoutWriter.Close()
+		_ = stdoutReader.Close()
 		return nil, err
 	}
 
@@ -69,7 +69,7 @@ func (w *CobraLambda) Execute(args []string) (*OutputCapture, error) {
 	go func() {
 		defer wg.Done()
 		mw := io.MultiWriter(sharedBuffer, w.originalStdout)
-		io.Copy(mw, stdoutReader)
+		_, _ = io.Copy(mw, stdoutReader)
 		done <- true
 	}()
 
@@ -77,7 +77,7 @@ func (w *CobraLambda) Execute(args []string) (*OutputCapture, error) {
 	go func() {
 		defer wg.Done()
 		mw := io.MultiWriter(sharedBuffer, w.originalStderr)
-		io.Copy(mw, stderrReader)
+		_, _ = io.Copy(mw, stderrReader)
 		done <- true
 	}()
 
@@ -88,14 +88,14 @@ func (w *CobraLambda) Execute(args []string) (*OutputCapture, error) {
 
 	execErr := w.cmd.Execute()
 
-	stdoutWriter.Close()
-	stderrWriter.Close()
+	_ = stdoutWriter.Close()
+	_ = stderrWriter.Close()
 
 	wg.Wait()
 	close(done)
 
-	stdoutReader.Close()
-	stderrReader.Close()
+	_ = stdoutReader.Close()
+	_ = stderrReader.Close()
 
 	os.Stdout = w.originalStdout
 	os.Stderr = w.originalStderr
