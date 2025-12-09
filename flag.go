@@ -34,7 +34,6 @@ func parseFuncName(args []string) (string, bool, error) {
 	if s[1] == '-' {
 		numMinuses++
 		if len(s) == 2 { // "--" terminates the flags
-			args = args[1:]
 			return "", false, nil
 		}
 	}

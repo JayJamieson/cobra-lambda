@@ -221,6 +221,9 @@ func TestNewCobrLambdaHandler_EmptyArgs(t *testing.T) {
 }
 
 func TestNewCobrLambdaHandler_ContextPropagation(t *testing.T) {
+	type contextKey string
+	const testKey contextKey = "test-key"
+
 	// Create a command that checks context
 	receivedCtx := false
 	cmd := &cobra.Command{
@@ -228,7 +231,7 @@ func TestNewCobrLambdaHandler_ContextPropagation(t *testing.T) {
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := cmd.Context()
 			if ctx != nil {
-				if val := ctx.Value("test-key"); val == "test-value" {
+				if val := ctx.Value(testKey); val == "test-value" {
 					receivedCtx = true
 					cmd.Println("Context received correctly")
 				}
@@ -247,7 +250,7 @@ func TestNewCobrLambdaHandler_ContextPropagation(t *testing.T) {
 	}
 
 	// Create context with value
-	ctx := context.WithValue(context.Background(), "test-key", "test-value")
+	ctx := context.WithValue(context.Background(), testKey, "test-value")
 	result, err := handler(ctx, eventJSON)
 
 	if err != nil {
