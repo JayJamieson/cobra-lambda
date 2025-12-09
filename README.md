@@ -1,5 +1,7 @@
 # cobra-lambda
 
+[![CI](https://github.com/JayJamieson/cobra-lambda/actions/workflows/ci.yml/badge.svg)](https://github.com/JayJamieson/cobra-lambda/actions/workflows/ci.yml)
+
 Run your [Cobra](https://github.com/spf13/cobra) CLI applications in AWS Lambda and invoke them remotely as if they were running locally on your machine.
 
 ## What is cobra-lambda?
