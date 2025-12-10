@@ -44,7 +44,7 @@ func TestNewCobrLambdaHandler_BasicExecution(t *testing.T) {
 	}
 
 	// Check the result is an OutputCapture
-	output, ok := result.(*OutputCapture)
+	output, ok := result.(*CobraLambdaOutput)
 	if !ok {
 		t.Fatalf("Expected *OutputCapture, got %T", result)
 	}
@@ -115,7 +115,7 @@ func TestNewCobrLambdaHandler_CommandError(t *testing.T) {
 	}
 
 	// Result should still contain output capture
-	output, ok := result.(*OutputCapture)
+	output, ok := result.(*CobraLambdaOutput)
 	if !ok {
 		t.Fatalf("Expected *OutputCapture even on error, got %T", result)
 	}
@@ -163,7 +163,7 @@ func TestNewCobrLambdaHandler_WithSubcommands(t *testing.T) {
 		t.Fatalf("Handler returned error: %v", err)
 	}
 
-	output, ok := result.(*OutputCapture)
+	output, ok := result.(*CobraLambdaOutput)
 	if !ok {
 		t.Fatalf("Expected *OutputCapture, got %T", result)
 	}
@@ -210,7 +210,7 @@ func TestNewCobrLambdaHandler_EmptyArgs(t *testing.T) {
 		t.Error("Command was not executed")
 	}
 
-	output, ok := result.(*OutputCapture)
+	output, ok := result.(*CobraLambdaOutput)
 	if !ok {
 		t.Fatalf("Expected *OutputCapture, got %T", result)
 	}
@@ -261,7 +261,7 @@ func TestNewCobrLambdaHandler_ContextPropagation(t *testing.T) {
 		t.Error("Context was not properly propagated to command")
 	}
 
-	output, ok := result.(*OutputCapture)
+	output, ok := result.(*CobraLambdaOutput)
 	if !ok {
 		t.Fatalf("Expected *OutputCapture, got %T", result)
 	}

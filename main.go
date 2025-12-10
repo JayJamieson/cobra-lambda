@@ -37,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	output := &ExecutionOutput{}
+	output := &wrapper.CobraLambdaOutput{}
 
 	err = lambda.InvokeSync(ctx, client, &lambda.InvokeInput{
 		Name:      funcName,

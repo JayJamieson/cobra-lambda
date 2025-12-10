@@ -31,10 +31,16 @@ func Handler(ctx context.Context, event json.RawMessage) (any, error) {
 	w := wrapper.NewCobraLambdaCLI(ctx, rootCmd)
 	result, err := w.Execute(args.Args)
 
-	// TODO: implement err != nil checks before deserializing
+	if err != nil {
+		return map[string]any{
+			"stdout": result.Stdout,
+			"error":  err.Error(),
+		}, nil
+	}
+
 	return map[string]any{
 		"stdout": result.Stdout,
-		"error":  err.Error(),
+		"error":  nil,
 	}, nil
 }
 

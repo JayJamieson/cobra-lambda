@@ -9,9 +9,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// OutputCapture holds captured output from both Cobra command and os.Stdout/Stderr
-type OutputCapture struct {
+// CobraLambdaOutput holds captured output from both Cobra command and os.Stdout/Stderr
+type CobraLambdaOutput struct {
 	Stdout string `json:"stdout"`
+	Error  string `json:"error"`
 }
 
 type CobraLambda struct {
@@ -35,7 +36,7 @@ func NewCobraLambdaCLI(ctx context.Context, cmd *cobra.Command) *CobraLambda {
 // Execute runs the Cobra command with the given arguments and captures all output
 // This method is thread-safe and will restore os.Stdout/Stderr even if the command panics
 // Note: Only one execution can run at a time per wrapper instance to avoid interference
-func (w *CobraLambda) Execute(args []string) (*OutputCapture, error) {
+func (w *CobraLambda) Execute(args []string) (*CobraLambdaOutput, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -100,14 +101,14 @@ func (w *CobraLambda) Execute(args []string) (*OutputCapture, error) {
 	os.Stdout = w.originalStdout
 	os.Stderr = w.originalStderr
 
-	return &OutputCapture{
+	return &CobraLambdaOutput{
 		Stdout: sharedBuffer.String(),
 	}, execErr
 }
 
 // ExecuteWithContext is a convenience method that runs Execute with the provided context overriding
 // context passed in from NewCobraLambda and restoring to original context after execution
-func (w *CobraLambda) ExecuteContext(ctx context.Context, args []string) (*OutputCapture, error) {
+func (w *CobraLambda) ExecuteContext(ctx context.Context, args []string) (*CobraLambdaOutput, error) {
 	w.cmd.SetContext(ctx)
 	output, err := w.Execute(args)
 	w.cmd.SetContext(w.ctx)

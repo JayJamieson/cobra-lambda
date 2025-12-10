@@ -1,53 +1,51 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
-	"io"
 	"net/rpc"
 	"os"
 	"time"
 
+	"github.com/JayJamieson/cobra-lambda/wrapper"
 	"github.com/aws/aws-lambda-go/lambda/messages"
 )
 
-var port = flag.Int("port", 8001, "Port that the lambda is listening on. Should be equal to the _LAMBDA_SERVER_PORT env var of the Golang lambda running.")
-var stdinIsPayload = flag.Bool("stdin-is-payload", false, "Use STDIN as the payload of the request. All other invoke parameters will be left empty")
-var deadline = flag.Int64("deadline", 1, "Lambda invocation deadline (in seconds). Used only if stdin-is-payload is enabled")
-
-// echo '{"args":["-a"]}' | ./main --stdin-is-payload --port=8001 | jq -r .Payload | base64 -d
 func main() {
-	flag.Parse()
+	client, err := rpc.Dial("tcp", fmt.Sprintf("localhost:%d", 8001))
 
-	client, err := rpc.Dial("tcp", fmt.Sprintf("localhost:%d", *port))
 	if err != nil {
-		panic(err)
+		fmt.Printf("%v\n", err)
+		os.Exit(1)
 	}
 
-	args := messages.InvokeRequest{}
-	if *stdinIsPayload {
-		buf := bytes.Buffer{}
-		if _, err := io.Copy(&buf, os.Stdin); err != nil {
-			panic(err)
-		}
+	argsEvent := wrapper.CobraLambdaEvent{Args: os.Args[1:]}
+	payload, err := json.Marshal(argsEvent)
 
-		args.Payload = buf.Bytes()
-		args.Deadline.Seconds = time.Now().Unix() + *deadline
-	} else {
-		// Assume stdin contains a JSON-encoded InvokeRequest.
-		if err := json.NewDecoder(os.Stdin).Decode(&args); err != nil {
-			panic(err)
-		}
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		os.Exit(1)
 	}
 
-	var reply messages.InvokeResponse
-	if err := client.Call("Function.Invoke", args, &reply); err != nil {
-		panic(err)
+	args := messages.InvokeRequest{
+		Payload: payload,
+		Deadline: messages.InvokeRequest_Timestamp{
+			Seconds: time.Now().Unix() + 10,
+		},
 	}
 
-	if err := json.NewEncoder(os.Stdout).Encode(reply); err != nil {
-		panic(err)
+	invokeResponse := &messages.InvokeResponse{}
+	if err := client.Call("Function.Invoke", args, &invokeResponse); err != nil {
+		fmt.Printf("%v\n", err)
+		os.Exit(1)
 	}
+
+	output := &wrapper.CobraLambdaOutput{}
+
+	if err := json.Unmarshal(invokeResponse.Payload, &output); err != nil {
+		fmt.Printf("%v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Print(output.Stdout)
 }
