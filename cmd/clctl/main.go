@@ -6,9 +6,24 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/JayJamieson/cobra-lambda/cli/flag"
 	"github.com/JayJamieson/cobra-lambda/wrapper"
 	lambda "github.com/JayJamieson/go-lambda-invoke"
 )
+
+var HelpMessage = `Cobra Lambda
+Usage of cobra-lambda:
+	With arguements:
+
+	clctl
+	cobra-lambda --name [function name] -arg1 123 -arg2 foo --arg3
+
+	Without arguments:
+	clctl
+	cobra-lambda --name [function name]
+
+Arguments after --name will be forwarded to remote cli named [function name]
+`
 
 func main() {
 	ctx := context.Background()
@@ -25,9 +40,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	funcName, ok, err := parseFuncName(os.Args[1:])
+	funcName, ok, err := flag.ParseFuncName(os.Args[1:])
 
-	if err != nil && errors.Is(err, ErrHelp) {
+	if err != nil && errors.Is(err, flag.ErrHelp) {
 		fmt.Print(HelpMessage)
 		os.Exit(0)
 	}
@@ -37,7 +52,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	output := &ExecutionOutput{}
+	output := &wrapper.CobraLambdaOutput{}
 
 	err = lambda.InvokeSync(ctx, client, &lambda.InvokeInput{
 		Name:      funcName,

@@ -21,7 +21,7 @@ Perfect for running CLI tools, automation scripts, or administrative commands se
 Install the `cobra-lambda` CLI tool to invoke remote Cobra applications hosted in Lambda:
 
 ```bash
-go install github.com/JayJamieson/cobra-lambda@latest
+go install github.com/JayJamieson/cobra-lambda/cmd/clctl@latest
 ```
 
 Or build from source:
@@ -29,7 +29,7 @@ Or build from source:
 ```bash
 git clone https://github.com/JayJamieson/cobra-lambda.git
 cd cobra-lambda
-go build -o cobra-lambda .
+go build -o clctl cmd/clctl/main.go
 ```
 
 ### Go Library (for wrapping Cobra apps in Lambda)
@@ -106,13 +106,13 @@ Use the CLI client to invoke your Lambda-hosted Cobra app:
 
 ```bash
 # Basic invocation
-cobra-lambda --name my-lambda-function
+clctl --name my-lambda-function
 
 # With arguments and flags
-cobra-lambda --name my-lambda-function --name Alice
+clctl --name my-lambda-function --name Alice
 
 # Pass any Cobra CLI arguments
-cobra-lambda --name my-lambda-function subcommand --flag value arg1 arg2
+clctl --name my-lambda-function subcommand --flag value arg1 arg2
 ```
 
 The CLI forwards all arguments after `--name [function-name]` to your Lambda function.
@@ -187,26 +187,26 @@ For concurrent executions, create separate wrapper instances per goroutine, or r
 
 ## CLI Client Usage
 
-The `cobra-lambda` CLI tool invokes remote Lambda functions:
+The `clctl` CLI tool invokes remote Lambda functions:
 
 ```bash
-cobra-lambda --name <function-name> [cobra-args...]
+clctl --name <function-name> [cobra-args...]
 ```
 
 ### Examples
 
 ```bash
 # Simple invocation
-cobra-lambda --name my-cli-app
+clctl --name my-cli-app
 
 # With flags
-cobra-lambda --name my-cli-app --verbose --output json
+clctl --name my-cli-app --verbose --output json
 
 # With subcommands
-cobra-lambda --name my-cli-app deploy --environment prod
+clctl --name my-cli-app deploy --environment prod
 
 # Help
-cobra-lambda --help
+clctl --help
 ```
 
 ### AWS Configuration
@@ -217,18 +217,86 @@ The CLI uses the AWS SDK for Go v2 and respects standard AWS configuration:
 - Region from `AWS_REGION` environment variable or AWS config
 - IAM permissions required: `lambda:InvokeFunction`
 
-## Testing
+## Local Development with cldebug
 
-Run the wrapper package test suite:
+The `cldebug` cli allows you to test and debug your Lambda Cobra CLI applications locally without deploying to AWS. It starts your Lambda function as an RPC server and invokes it locally, simulating the Lambda runtime environment.
+
+### Installing cldebug
+
+Install `cldebug` cli:
 
 ```bash
-cd wrapper
-go test -v
+go install github.com/JayJamieson/cobra-lambda/cmd/cldebug@latest
+```
+
+Or build from source:
+
+```bash
+git clone https://github.com/JayJamieson/cobra-lambda.git
+cd cobra-lambda
+go build -o cldebug cmd/cldebug/main.go
+```
+
+### Usage Examples
+
+#### 1. Invoke a compiled Lambda binary
+
+First, build your Lambda function:
+
+```bash
+go build -o bootstrap ./iac/go-demo/main.go
+```
+
+Then invoke it locally with `cldebug`:
+
+```bash
+cldebug ./bootstrap arg1 arg2 --flag value
+```
+
+#### 2. Invoke a Go file directly with go run
+
+For rapid development, you can run your Lambda source file directly without building:
+
+```bash
+cldebug --go-run ./iac/go-demo/main.go arg1 arg2 --flag value
+```
+
+#### 3. Debug mode
+
+Enable debug logging to see what's happening under the hood:
+
+```bash
+cldebug --debug ./bootstrap arg1 arg2
+```
+
+This will show:
+- Lambda process startup
+- RPC connection details
+- Invocation payload
+- Process cleanup steps
+
+### Full Example
+
+Using the example from `iac/go-demo/`:
+
+```bash
+# Build the Lambda function
+cd iac/go-demo
+go build -o bootstrap main.go
+
+# Test locally with cldebug
+cldebug ./bootstrap hello world
+
+# Or use go run for faster iteration
+cldebug --go-run main.go hello world
+
+# With debug output
+cldebug --debug ./bootstrap hello world
 ```
 
 ## How It Works
 
-1. **Client Side**: The `cobra-lambda` CLI tool extracts the `--name` flag to identify the target Lambda function, then forwards all remaining arguments as a JSON array payload.
+1. **Client Side**: The `clctl` CLI tool extracts the `--name` flag to identify the target Lambda function, then forwards all remaining arguments as a JSON array payload.
 
 2. **Lambda Side**: The wrapper package:
    - Intercepts `os.Stdout` and `os.Stderr` using pipes
@@ -239,7 +307,7 @@ go test -v
 
 3. **Response**: The client displays the returned output, making the remote execution feel like a local CLI invocation.
 
-## Examples in This Repository
+## Examples
 
 See the `iac/` directory for complete examples:
 

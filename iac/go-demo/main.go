@@ -22,19 +22,25 @@ var rootCmd = &cobra.Command{
 }
 
 func Handler(ctx context.Context, event json.RawMessage) (any, error) {
-
-	args := make([]string, 0, 10)
-	err := json.Unmarshal(event, &args)
+	args, err := wrapper.UnmarshalEvent(event)
 
 	if err != nil {
 		return nil, err
 	}
 
-	w := wrapper.NewCobraLambda(ctx, rootCmd)
-	result, err := w.Execute(args)
+	w := wrapper.NewCobraLambdaCLI(ctx, rootCmd)
+	result, err := w.Execute(args.Args)
+
+	if err != nil {
+		return map[string]any{
+			"stdout": result.Stdout,
+			"error":  err.Error(),
+		}, nil
+	}
 
 	return map[string]any{
-		"stdout": result.Output,
+		"stdout": result.Stdout,
+		"error":  nil,
 	}, nil
 }
 
