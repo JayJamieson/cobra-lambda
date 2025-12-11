@@ -111,7 +111,12 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Failed to connect to Lambda server: %v\n", err)
 		os.Exit(1)
 	}
-	defer client.Close()
+
+	defer func() {
+		if client != nil {
+			_ = client.Close()
+		}
+	}()
 
 	runner.Debugf("Connected to Lambda RPC server")
 
@@ -172,7 +177,7 @@ func waitForServer(port string, timeout time.Duration) error {
 	for time.Now().Before(deadline) {
 		conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%s", port), 100*time.Millisecond)
 		if err == nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil
 		}
 		time.Sleep(50 * time.Millisecond)
