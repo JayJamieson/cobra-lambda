@@ -99,7 +99,6 @@ func main() {
 		}
 	}()
 
-	// Wait for the Lambda server to be ready
 	if err := waitForServer(lambdaServerPort, 5*time.Second); err != nil {
 		fmt.Fprintf(os.Stderr, "Lambda server failed to start: %v\n", err)
 		os.Exit(1)
@@ -107,7 +106,6 @@ func main() {
 
 	runner.Debugf("Lambda server is ready on port %s", lambdaServerPort)
 
-	// Connect to the Lambda RPC server
 	client, err := rpc.Dial("tcp", fmt.Sprintf("localhost:%s", lambdaServerPort))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to connect to Lambda server: %v\n", err)
@@ -117,7 +115,6 @@ func main() {
 
 	runner.Debugf("Connected to Lambda RPC server")
 
-	// Prepare the invocation request
 	argsEvent := wrapper.CobraLambdaEvent{Args: config.LambdaArgs}
 	payload, err := json.Marshal(argsEvent)
 	if err != nil {
@@ -132,7 +129,6 @@ func main() {
 		},
 	}
 
-	// Invoke the Lambda function
 	runner.Debugf("Invoking Lambda function...")
 	invokeResponse := &messages.InvokeResponse{}
 	if err := client.Call("Function.Invoke", args, &invokeResponse); err != nil {
@@ -146,26 +142,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Parse the response
 	output := &wrapper.CobraLambdaOutput{}
 	if err := json.Unmarshal(invokeResponse.Payload, &output); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to unmarshal response: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Print the output
 	fmt.Print(output.Stdout)
 
-	// Send SIGTERM to the Lambda process
 	runner.Debugf("Sending SIGTERM to Lambda process...")
 	if err := runner.KillProcessGroup(cmd, syscall.SIGTERM); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to send SIGTERM: %v\n", err)
 	}
 
-	// Wait a moment for the signal to be processed
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
-	// Try to call Function.Ping after sending SIGTERM
 	runner.Debugf("Attempting to call Function.Ping after SIGTERM...")
 	pingResponse := &messages.PingResponse{}
 
@@ -176,7 +167,6 @@ func main() {
 	}
 }
 
-// waitForServer polls the given port until it's available or timeout is reached
 func waitForServer(port string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {

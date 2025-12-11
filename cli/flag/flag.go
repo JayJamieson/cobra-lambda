@@ -1,4 +1,4 @@
-package main
+package flag
 
 import (
 	"errors"
@@ -7,21 +7,7 @@ import (
 
 var ErrHelp = errors.New("flag: help requested")
 
-var HelpMessage = `Cobra Lambda
-Usage of cobra-lambda:
-	With arguements:
-
-	cl
-	cobra-lambda --name [function name] -arg1 123 -arg2 foo --arg3
-
-	Without arguments:
-	cl
-	cobra-lambda --name [function name]
-
-Arguments after --name will be forwarded to remote cli named [function name]
-`
-
-func parseFuncName(args []string) (string, bool, error) {
+func ParseFuncName(args []string) (string, bool, error) {
 	if len(args) == 0 {
 		return "", false, nil
 	}
