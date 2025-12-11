@@ -18,7 +18,7 @@ import (
 const (
 	lambdaServerPort = "8001"
 	helpMessage      = `Usage: rpc [flags] [lambda-path] [args...]
-       rpc [flags] -- [lambda-path] [args...]
+       rpc [flags] [lambda-path] [args...]
 
 Runs a Go Lambda function locally over RPC.
 
@@ -35,7 +35,7 @@ Examples:
   rpc ./lambda-binary arg1 arg2
 
   # Run with go run
-  rpc --go-run -- cmd/lambda/main.go arg1 arg2
+  rpc --go-run cmd/lambda/main.go arg1 arg2
 
   # Debug mode
   rpc --debug ./lambda-binary
