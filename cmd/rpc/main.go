@@ -2,70 +2,99 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"net"
 	"net/rpc"
 	"os"
-	"os/exec"
 	"syscall"
 	"time"
 
+	"github.com/JayJamieson/cobra-lambda/cli"
 	"github.com/JayJamieson/cobra-lambda/wrapper"
 	"github.com/aws/aws-lambda-go/lambda/messages"
 )
 
 const (
 	lambdaServerPort = "8001"
-	helpMessage      = `Usage: rpc [lambda-binary-path] [args...]
+	helpMessage      = `Usage: rpc [flags] [lambda-path] [args...]
+       rpc [flags] -- [lambda-path] [args...]
 
 Runs a Go Lambda function locally over RPC.
 
+Flags:
+  --debug         Enable debug logging
+  --go-run        Use 'go run' instead of compiled binary (requires '--' separator)
+
 Arguments:
-  lambda-binary-path    Path to the compiled Lambda binary
-  args...              Arguments to pass to the Lambda function
+  lambda-path     Path to the compiled Lambda binary or source file
+  args...         Arguments to pass to the Lambda function
+
+Examples:
+  # Run compiled binary
+  rpc ./lambda-binary arg1 arg2
+
+  # Run with go run
+  rpc --go-run -- cmd/lambda/main.go arg1 arg2
+
+  # Debug mode
+  rpc --debug ./lambda-binary
 
 The Lambda binary will be started with _LAMBDA_SERVER_PORT=8001 and invoked over RPC.
 `
 )
 
+var (
+	debugFlag = flag.Bool("debug", false, "Enable debug logging")
+	goRunFlag = flag.Bool("go-run", false, "Use 'go run' instead of compiled binary")
+)
+
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprint(os.Stderr, helpMessage)
-		os.Exit(1)
-	}
-
-	if os.Args[1] == "-h" || os.Args[1] == "--help" {
+	flag.Usage = func() {
 		fmt.Print(helpMessage)
-		os.Exit(0)
+	}
+	flag.Parse()
+
+	// Determine run mode
+	mode := cli.ModeBinary
+	if *goRunFlag {
+		mode = cli.ModeGoRun
 	}
 
-	lambdaPath := os.Args[1]
-	lambdaArgs := []string{}
-	if len(os.Args) > 2 {
-		lambdaArgs = os.Args[2:]
-	}
+	// Create runner
+	runner := cli.NewRunner(mode, *debugFlag, lambdaServerPort)
 
-	// Check if lambda binary exists
-	if _, err := os.Stat(lambdaPath); os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "Error: Lambda binary not found at %s\n", lambdaPath)
+	// Parse arguments based on mode (use flag.Args() which contains non-flag arguments)
+	config, err := runner.ParseArgs(flag.Args())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n\n", err)
+		flag.Usage()
 		os.Exit(1)
 	}
 
-	// Start the Lambda process with _LAMBDA_SERVER_PORT environment variable
-	cmd := exec.Command("go", "run", lambdaPath)
-	cmd.Env = append(os.Environ(), fmt.Sprintf("_LAMBDA_SERVER_PORT=%s", lambdaServerPort))
-	cmd.Stdout = nil
-	cmd.Stderr = nil
+	runner.Debugf("Mode: %v", mode)
+	runner.Debugf("Lambda path: %s", config.LambdaPath)
+	runner.Debugf("Lambda args: %v", config.LambdaArgs)
+
+	// Create the command
+	cmd, err := runner.CreateCommand(config)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
 	if err := cmd.Start(); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to start Lambda process: %v\n", err)
 		os.Exit(1)
 	}
 
+	runner.Debugf("Lambda process started with PID: %d", cmd.Process.Pid)
+
 	// Ensure we kill the process on exit
 	defer func() {
 		if cmd.Process != nil {
-			_ = cmd.Process.Kill()
+			runner.Debugf("Cleaning up Lambda process...")
+			_ = runner.KillProcessGroup(cmd, syscall.SIGKILL)
 			_ = cmd.Wait()
 		}
 	}()
@@ -76,6 +105,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	runner.Debugf("Lambda server is ready on port %s", lambdaServerPort)
+
 	// Connect to the Lambda RPC server
 	client, err := rpc.Dial("tcp", fmt.Sprintf("localhost:%s", lambdaServerPort))
 	if err != nil {
@@ -84,8 +115,10 @@ func main() {
 	}
 	defer client.Close()
 
+	runner.Debugf("Connected to Lambda RPC server")
+
 	// Prepare the invocation request
-	argsEvent := wrapper.CobraLambdaEvent{Args: lambdaArgs}
+	argsEvent := wrapper.CobraLambdaEvent{Args: config.LambdaArgs}
 	payload, err := json.Marshal(argsEvent)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to marshal event: %v\n", err)
@@ -100,6 +133,7 @@ func main() {
 	}
 
 	// Invoke the Lambda function
+	runner.Debugf("Invoking Lambda function...")
 	invokeResponse := &messages.InvokeResponse{}
 	if err := client.Call("Function.Invoke", args, &invokeResponse); err != nil {
 		fmt.Fprintf(os.Stderr, "Lambda invocation failed: %v\n", err)
@@ -120,24 +154,25 @@ func main() {
 	}
 
 	// Print the output
-	fmt.Print("cli", output.Stdout)
+	fmt.Print(output.Stdout)
 
 	// Send SIGTERM to the Lambda process
-	fmt.Println("\nSending SIGTERM to Lambda process...")
-	if err := cmd.Process.Signal(syscall.SIGKILL); err != nil {
+	runner.Debugf("Sending SIGTERM to Lambda process...")
+	if err := runner.KillProcessGroup(cmd, syscall.SIGTERM); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to send SIGTERM: %v\n", err)
 	}
 
 	// Wait a moment for the signal to be processed
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
 	// Try to call Function.Ping after sending SIGTERM
-	fmt.Println("Attempting to call Function.Ping after SIGTERM...")
+	runner.Debugf("Attempting to call Function.Ping after SIGTERM...")
 	pingResponse := &messages.PingResponse{}
+
 	if err := client.Call("Function.Ping", messages.PingRequest{}, pingResponse); err != nil {
-		fmt.Fprintf(os.Stderr, "Function.Ping failed (expected): %v\n", err)
+		runner.Debugf("Function.Ping failed (expected): %v", err)
 	} else {
-		fmt.Println("Function.Ping succeeded unexpectedly")
+		runner.Debugf("Function.Ping succeeded unexpectedly")
 	}
 }
 
