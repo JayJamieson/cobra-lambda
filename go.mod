@@ -4,11 +4,11 @@ go 1.22.0
 
 require (
 	github.com/JayJamieson/go-lambda-invoke v0.0.0-20241203104456-7a8a6587f398
+	github.com/aws/aws-lambda-go v1.51.0
 	github.com/spf13/cobra v1.8.1
 )
 
 require (
-	github.com/aws/aws-lambda-go v1.51.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.32.6 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.7 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.28.6 // indirect
