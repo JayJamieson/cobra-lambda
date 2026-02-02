@@ -6,17 +6,17 @@ export const handler = async (event, context) => {
   interceptor.startIntercept();
 
   // Normal logging will now be captured
-  console.log('Starting Lambda execution');
-  console.log("Invoked with", JSON.stringify(event, null, 2))
-  console.error('Sample error log');
+  console.log("Starting Lambda execution");
+  console.log("Invoked with", JSON.stringify(event, null, 2));
+  console.error("Sample error log");
 
   // Get captured logs for potential logging or debugging
   const capturedLogs = interceptor.getLogContent();
 
   interceptor.stopIntercept();
 
-  return {stdout: capturedLogs, result: ""}
-}
+  return { stdout: capturedLogs, error: "" };
+};
 
 class ConsoleInterceptor {
   constructor() {
@@ -33,9 +33,11 @@ class ConsoleInterceptor {
     // Override console.log
     console.log = (...args) => {
       // Convert all arguments to strings and join
-      const message = args.map(arg =>
-        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-      ).join(' ');
+      const message = args
+        .map((arg) =>
+          typeof arg === "object" ? JSON.stringify(arg) : String(arg),
+        )
+        .join(" ");
 
       // Store in log buffer
       this.logBuffer.push(message);
@@ -47,9 +49,11 @@ class ConsoleInterceptor {
     // Override console.error
     console.error = (...args) => {
       // Convert all arguments to strings and join
-      const message = args.map(arg =>
-        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-      ).join(' ');
+      const message = args
+        .map((arg) =>
+          typeof arg === "object" ? JSON.stringify(arg) : String(arg),
+        )
+        .join(" ");
 
       // Store in error buffer
       this.logBuffer.push(`[ERROR] ${message}`);
@@ -67,7 +71,7 @@ class ConsoleInterceptor {
 
   // Get captured log content
   getLogContent() {
-    return this.logBuffer.join('\n');
+    return this.logBuffer.join("\n");
   }
 
   // Clear buffers
